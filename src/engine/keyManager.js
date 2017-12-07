@@ -11,11 +11,17 @@ const { Buffer } = buffer
 
 const GAP_LIMIT = 10
 const RBF_SEQUENCE_NUM = 0xffffffff - 2
+const OP_RETURN = '6a'
+const POP_SEQUENCE_NUM = 0
+const POP_LOCK_TIME = 499999999
+const POP_NONCE_LENGTH = 6
+
 const nop = () => {}
 
 export type Txid = string
 export type WalletType = string
 export type RawTx = string
+export type Nonce = string
 export type BlockHeight = number
 
 export type Key = {
@@ -64,6 +70,11 @@ export type createTxOptions = {
   RBFraw?: RawTx,
   CPFP?: Txid,
   CPFPlimit?: number
+}
+
+export type createPOPOptions = {
+  rawTX: RawTx,
+  nonce: Nonce
 }
 
 export interface KeyManagerCallbacks {
@@ -313,6 +324,49 @@ export class KeyManager {
     if (!mtx.verifyInputs(height)) {
       throw new Error('TX failed context check.')
     }
+
+    return mtx
+  }
+
+  // Create a BIP120 Proof of Payment
+  // See more at: https://github.com/bitcoin/bips/blob/master/bip-0120.mediawiki
+  async createPOP ({
+    rawTX,
+    nonce
+  }: createPOPOptions): any {
+    if (nonce.length !== POP_NONCE_LENGTH) {
+      throw new Error(`Nonce length should be ${POP_NONCE_LENGTH}`)
+    }
+    const mtx = new bcoin.primitives.MTX()
+    const bcoinTX = bcoin.primitives.TX.fromRaw(rawTX, 'hex')
+    const bcoinTxJson = bcoinTX.getJSON(this.network)
+
+    // Check that we own all the addresses needed
+    for (const input of bcoinTxJson.inputs) {
+      console.log('input', input)
+      if (!input.prevout) throw new Error('Can\'t Prove a Coinbase TX')
+      const prevHash = await this.addressToScriptHash(input.address)
+      if (!this.addressCache[prevHash]) {
+        throw new Error('Address does not belong to us')
+      }
+    }
+
+    // POP TX Has the same inputs as the transaction we want to prove
+    mtx.inputs = bcoinTX.inputs
+
+    // Enable nLockTime by changing inputs sequences
+    for (const input of mtx.inputs) {
+      input.sequence = POP_SEQUENCE_NUM
+    }
+
+    // Set nLockTime so that the TX will never be valid
+    mtx.locktime = POP_LOCK_TIME
+
+    // Create and Add the OP_RETURN output
+    const version = '0100'
+    const rawScript = OP_RETURN + version + bcoinTxJson.hash + nonce
+    const script = bcoin.script.fromRaw(rawScript, 'hex')
+    mtx.addOutput(script, 0)
 
     return mtx
   }

@@ -48,7 +48,7 @@ export const bluecoinInfo: AbcCurrencyInfo = {
     },
 
     enableOverrideServers: true,
-    electrumServers: ['electrum://148.251.98.197:50001']
+    electrumServers: ['electrum://45.63.38.220:50001']
   },
   metaTokens: [],
 

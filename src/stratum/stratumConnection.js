@@ -276,6 +276,16 @@ export class StratumConnection {
         delete this.pendingMessages[id]
         ++this.totalMessages
         this.totalLatency = Date.now() - message.startTime
+
+        if (json.error) {
+          const { error } = json
+          error.args = (error.message || '').split('\n')
+          error.message = error.args[0]
+          message.task.onFail(error)
+          ++this.badMessages
+          return
+        }
+
         try {
           message.task.onDone(json.result)
           ++this.goodMessages

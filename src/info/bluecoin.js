@@ -1,5 +1,5 @@
 // @flow
-import type { AbcCurrencyInfo } from 'airbitz-core-types'
+import type { AbcCurrencyInfo } from 'edge-login'
 
 export const bluecoinInfo: AbcCurrencyInfo = {
   // Basic currency information:
@@ -34,6 +34,7 @@ export const bluecoinInfo: AbcCurrencyInfo = {
         bech32: null
       }
     },
+    customFeeSettings: ['satPerByte'],
     gapLimit: 10,
     maxFee: 1000000,
     defaultFee: 1000,
@@ -48,7 +49,11 @@ export const bluecoinInfo: AbcCurrencyInfo = {
     },
 
     enableOverrideServers: true,
-    electrumServers: ['electrum://45.63.38.220:50001']
+    electrumServers: [
+      'electrum://45.63.38.220:50001',
+      'electrum://45.77.68.114:50001',
+      'electrum://45.63.84.228:50001'
+    ]
   },
   metaTokens: [],
 
